@@ -122,139 +122,116 @@ INSERT INTO Orders (OrderID, CustomerID, ProductID, Quantity, OrderDate) VALUES
 (29, 29, 29, 1, '2025-02-15'),
 (30, 30, 30, 2, '2025-02-16');
 
--- 1. Tim tat ca khach hang o thanh pho 'Hanoi'
-
--- B1: Xac dinh xem du lieu yeu cau cua tinh nang se lay o bang nao
--- hay luu tru o bang nao
-
--- B2: Dieu kien lay du lieu neu co => Lay cot nao de so sanh voi dieu kien 
+-- 1) Tìm tất cả khách hàng ở thành phố "Hanoi"
 SELECT *
-FROM Customers c 
-WHERE c.City = 'Hanoi';
+FROM Customers
+WHERE City = 'Hanoi';
 
--- 2. 
+-- 2) Tìm tất cả sản phẩm có giá trên 500,000 VND
 SELECT *
-FROM Products p 
-WHERE p.Price > 500000;
+FROM Products
+WHERE Price > 500000;
 
--- 3.
+-- 3) Đếm số đơn hàng theo từng khách hàng
 SELECT
   c.CustomerID,
   c.Name,
-  COALESCE(o.num_orders, 0) AS num_orders
-FROM
-  Customers c
-LEFT JOIN (
-  SELECT
-    CustomerID,
-    COUNT(*) AS num_orders
-  FROM
-    Orders
-  GROUP BY
-    CustomerID
-) o
-  ON o.CustomerID = c.CustomerID
-ORDER BY
-  num_orders DESC;
+  COUNT(o.OrderID) AS SoDonHang
+FROM Customers c
+LEFT JOIN Orders o ON c.CustomerID = o.CustomerID
+GROUP BY c.CustomerID, c.Name;
 
-SELECT o.CustomerID, COUNT(0) as Quantity
-From Orders o
-GROUP BY o.CustomerID, o.ProductID;
-
--- 4.
+-- 4) Tổng số lượng sản phẩm đã bán theo từng loại sản phẩm
 SELECT
   p.Category,
-  SUM(o.Quantity)       AS Quantity_Sold
-FROM
-  Orders o
-  JOIN Products p ON o.ProductID = p.ProductID
-GROUP BY
-  p.Category
-ORDER BY
-  Quantity_Sold DESC;
+  SUM(o.Quantity) AS TongSoLuong
+FROM Products p
+JOIN Orders o ON p.ProductID = o.ProductID
+GROUP BY p.Category;
 
+-- 5) Tìm những khách hàng đã đặt nhiều hơn 5 đơn hàng
 SELECT
-	p.Category, count(0)
-FROM 
-	Products p
-JOIN
-	Orders o ON p.productID = o.productID
-GROUP BY 
-	p.Category
-	
--- 5.
+  c.CustomerID,
+  c.Name,
+  COUNT(o.OrderID) AS SoDonHang
+FROM Customers c
+JOIN Orders o ON c.CustomerID = o.CustomerID
+GROUP BY c.CustomerID, c.Name
+HAVING COUNT(o.OrderID) > 5;
+
+-- 6) Tìm tổng doanh thu theo từng sản phẩm
 SELECT
-	c.CustomerID, c.Name, COUNT(*) AS total_orders -- Dung alias de khong viet lai 
-FROM 
-	Orders o
-	JOIN Customers c ON o.CustomerID = c.CustomerID
-GROUP BY
-	c.CustomerID, c.Name
-HAVING
-	total_orders > 5;
+  p.ProductID,
+  p.ProductName,
+  SUM(o.Quantity * p.Price) AS DoanhThu
+FROM Products p
+JOIN Orders o ON p.ProductID = o.ProductID
+GROUP BY p.ProductID, p.ProductName;
 
--- Su khac nhau giua where va having
-
-
--- 4. 
+-- 7) Tìm sản phẩm có doanh thu trên 5 triệu
 SELECT
-  pc.Category,
-  COALESCE(s.total_sold, 0) AS total_sold
-FROM
-  (
-    SELECT DISTINCT Category
-    FROM Products
-  ) AS pc
-LEFT JOIN
-  (
-    SELECT
-      p.Category,
-      SUM(o.Quantity) AS total_sold
-    FROM
-      Orders o
-      JOIN Products p 
-        ON o.ProductID = p.ProductID
-    GROUP BY
-      p.Category
-  ) AS s
-  ON pc.Category = s.Category
-ORDER BY
-  total_sold DESC;
+  p.ProductID,
+  p.ProductName,
+  SUM(o.Quantity * p.Price) AS DoanhThu
+FROM Products p
+JOIN Orders o ON p.ProductID = o.ProductID
+GROUP BY p.ProductID, p.ProductName
+HAVING SUM(o.Quantity * p.Price) > 5000000;
 
+-- 8) Tìm những đơn hàng được đặt sau ngày 01/01/2025
+SELECT *
+FROM Orders
+WHERE OrderDate > '2025-01-01';
 
--- 6.
-SELECT
-	p.ProductID, p.ProductName, SUM(o.Quantity * p.Price) AS revenue
-FROM
-	Orders o
-	JOIN Products p ON p.ProductID = o.ProductID
-GROUP BY 
-	p.ProductID, p.ProductName
-	
--- 7.
-SELECT
-	p.ProductID, p.ProductName, SUM(o.Quantity * p.Price) AS revenue
-FROM
-	Orders o
-	JOIN Products p ON p.ProductID = o.ProductID
-GROUP BY 
-	p.ProductID, p.ProductName
-HAVING
-	revenue > 5000000
-	
--- 7.
+-- 9) Đếm số lượng đơn hàng trong từng ngày
+SELECT OrderDate, COUNT(*) AS SoDonHang
+FROM Orders
+GROUP BY OrderDate;
+
+-- 10) Tìm thành phố có trên 3 khách hàng
+SELECT City, COUNT(*) AS SoKhachHang
+FROM Customers
+GROUP BY City
+HAVING COUNT(*) > 3;
+
+-- 11) Danh sách đơn hàng kèm theo tên khách hàng và tên sản phẩm
 SELECT
   o.OrderID,
   c.Name        AS CustomerName,
-  p.ProductName AS ProductName,
+  p.ProductName,
   o.Quantity,
   o.OrderDate
-FROM
-  Orders o
-  JOIN Customers c ON o.CustomerID = c.CustomerID
-  JOIN Products  p ON o.ProductID  = p.ProductID
-WHERE
-  o.OrderDate > '2025-01-01'
+FROM Orders o
+JOIN Customers c ON o.CustomerID = c.CustomerID
+JOIN Products p  ON o.ProductID  = p.ProductID;
+
+-- 12) Tìm những khách hàng đã mua sản phẩm có giá > 10 triệu
+SELECT DISTINCT c.CustomerID, c.Name
+FROM Customers c
+JOIN Orders o    ON c.CustomerID = o.CustomerID
+JOIN Products p  ON o.ProductID  = p.ProductID
+WHERE p.Price > 10000000;
+
+-- 13) Tổng tiền mỗi khách hàng đã chi tiêu (Quantity * Price)
+SELECT c.CustomerID, c.Name, SUM(o.Quantity * p.Price) AS TongChiTieu
+FROM Customers c
+JOIN Orders o   ON c.CustomerID = o.CustomerID
+JOIN Products p ON o.ProductID  = p.ProductID
+GROUP BY c.CustomerID, c.Name;
+
+-- 14) Danh sách các thành phố có tổng số tiền mua hàng > 20 triệu
+SELECT c.City, SUM(o.Quantity * p.Price) AS TongDoanhThu
+FROM Customers c
+JOIN Orders o   ON c.CustomerID = o.CustomerID
+JOIN Products p ON o.ProductID  = p.ProductID
+GROUP BY c.City
+HAVING SUM(o.Quantity * p.Price) > 20000000;
+
+-- 15) Tìm những khách hàng chưa từng đặt hàng
+SELECT c.CustomerID, c.Name
+FROM Customers c
+LEFT JOIN Orders o ON c.CustomerID = o.CustomerID
+WHERE o.OrderID IS NULL;
 
 
 	
